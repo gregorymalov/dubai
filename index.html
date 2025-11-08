@@ -350,7 +350,7 @@
 
                 const totalValue = assets.reduce((acc, asset) => {
                     const valuations = (data.valuations && data.valuations[asset.id]) ? data.valuations[asset.id] : [];
-                    const latestConfirmed = valuations.find(v => v.status === 'Подтверждена');
+                    const latestConfirmed = Array.isArray(valuations) ? valuations.find(v => v.status === 'Подтверждена') : null;
                     return acc + (latestConfirmed ? latestConfirmed.valuationAmount : 0);
                 }, 0);
 
@@ -606,7 +606,7 @@
                 .reduce((sum, t) => sum + t.amount, 0);
 
             const netProfit = totalIncome - totalExpense;
-            const latestValuation = objectValuations.find(v => v.status === 'Подтверждена');
+            const latestValuation = Array.isArray(objectValuations) ? objectValuations.find(v => v.status === 'Подтверждена') : null;
 
             const handleAddTransaction = (transaction) => {
                 onShowModal('transaction', { object, transaction });
