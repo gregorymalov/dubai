@@ -263,7 +263,17 @@
 
             // Filter data based on selections
             const filteredData = useMemo(() => {
-                let filteredAssets = data.assets;
+                // Проверка на существование данных
+                if (!data) {
+                    return {
+                        assets: [],
+                        transactions: [],
+                        valuations: {},
+                        contracts: []
+                    };
+                }
+
+                let filteredAssets = data.assets || [];
 
                 if (selectedOwnerId) {
                     filteredAssets = filteredAssets.filter(asset => asset.ownerId === selectedOwnerId);
@@ -277,14 +287,14 @@
 
                 return {
                     assets: filteredAssets,
-                    transactions: data.transactions.filter(t => assetIds.includes(t.objectId)),
-                    valuations: Object.keys(data.valuations)
+                    transactions: (data.transactions || []).filter(t => assetIds.includes(t.objectId)),
+                    valuations: Object.keys(data.valuations || {})
                         .filter(key => assetIds.includes(key))
                         .reduce((obj, key) => {
                             obj[key] = data.valuations[key];
                             return obj;
                         }, {}),
-                    contracts: data.contracts.filter(c => assetIds.includes(c.objectId))
+                    contracts: (data.contracts || []).filter(c => assetIds.includes(c.objectId))
                 };
             }, [data, selectedOwnerId, selectedObjectId]);
 
@@ -305,7 +315,8 @@
                         break;
                 }
 
-                const filteredByTime = filteredData.transactions.filter(t => new Date(t.date) >= startDate);
+                const transactions = filteredData.transactions || [];
+                const filteredByTime = transactions.filter(t => new Date(t.date) >= startDate);
                 const monthlyData = {};
 
                 filteredByTime.forEach(t => {
@@ -334,15 +345,16 @@
 
             // Calculate stats
             const stats = useMemo(() => {
-                const totalObjects = filteredData.assets.length;
+                const assets = filteredData.assets || [];
+                const totalObjects = assets.length;
 
-                const totalValue = filteredData.assets.reduce((acc, asset) => {
-                    const valuations = data.valuations[asset.id] || [];
+                const totalValue = assets.reduce((acc, asset) => {
+                    const valuations = (data.valuations && data.valuations[asset.id]) ? data.valuations[asset.id] : [];
                     const latestConfirmed = valuations.find(v => v.status === 'Подтверждена');
                     return acc + (latestConfirmed ? latestConfirmed.valuationAmount : 0);
                 }, 0);
 
-                const rentedObjects = filteredData.assets.filter(asset => asset.status === 'Сдан').length;
+                const rentedObjects = assets.filter(asset => asset.status === 'Сдан').length;
                 const occupancy = totalObjects > 0 ? ((rentedObjects / totalObjects) * 100).toFixed(0) : 0;
 
                 return {
@@ -409,7 +421,7 @@
                                 Объекты (по фильтру)
                             </h3>
                             <ul className="divide-y divide-gray-200 dark:divide-gray-700 max-h-60 overflow-y-auto">
-                                {filteredData.assets.length > 0 ? (
+                                {(filteredData.assets && filteredData.assets.length > 0) ? (
                                     filteredData.assets.map((asset) => (
                                         <li key={asset.id} className="py-3 flex justify-between items-center">
                                             <div>
@@ -433,7 +445,11 @@
                                         </li>
                                     ))
                                 ) : (
-                                    <p className="text-gray-500 dark:text-gray-400 py-2">Нет объектов по фильтру.</p>
+                                    <p className="text-gray-500 dark:text-gray-400 py-2">
+                                        {data && data.assets && data.assets.length > 0
+                                            ? 'Нет объектов по фильтру.'
+                                            : 'Нет объектов. Создайте ваш первый объект.'}
+                                    </p>
                                 )}
                             </ul>
                         </div>
@@ -816,19 +832,26 @@
                             <div className="p-4 max-w-7xl mx-auto">
                                 <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Объекты недвижимости</h2>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {data.assets.map(asset => (
-                                        <div key={asset.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 hover:shadow-xl transition-shadow cursor-pointer" onClick={() => setSelectedObject(asset)}>
-                                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{asset.name}</h3>
-                                            <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">{asset.address || 'Адрес не указан'}</p>
-                                            <span className={`inline-block px-2 py-1 rounded-full text-xs ${
-                                                asset.status === 'Сдан'
-                                                    ? 'bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-100'
-                                                    : 'bg-gray-200 text-gray-800 dark:bg-gray-600 dark:text-gray-200'
-                                            }`}>
-                                                {asset.status}
-                                            </span>
+                                    {(data.assets && data.assets.length > 0) ? (
+                                        data.assets.map(asset => (
+                                            <div key={asset.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 hover:shadow-xl transition-shadow cursor-pointer" onClick={() => setSelectedObject(asset)}>
+                                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{asset.name}</h3>
+                                                <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">{asset.address || 'Адрес не указан'}</p>
+                                                <span className={`inline-block px-2 py-1 rounded-full text-xs ${
+                                                    asset.status === 'Сдан'
+                                                        ? 'bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-100'
+                                                        : 'bg-gray-200 text-gray-800 dark:bg-gray-600 dark:text-gray-200'
+                                                }`}>
+                                                    {asset.status}
+                                                </span>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="col-span-full text-center py-12">
+                                            <p className="text-gray-600 dark:text-gray-400 mb-4">У вас пока нет объектов недвижимости</p>
+                                            <p className="text-gray-500 dark:text-gray-500 text-sm">Нажмите на кнопку ниже, чтобы добавить первый объект</p>
                                         </div>
-                                    ))}
+                                    )}
                                     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center hover:border-blue-500 dark:hover:border-blue-400 transition-colors cursor-pointer" onClick={() => {
                                         const name = prompt('Название объекта:');
                                         if (name) {
