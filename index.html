@@ -8,7 +8,7 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/recharts@2.8.0/umd/Recharts.min.js"></script>
+    <script src="https://unpkg.com/recharts@2.8.0/umd/Recharts.js"></script>
     <style>
         /* Дополнительные стили для темной темы */
         .dark {
@@ -21,7 +21,14 @@
 
     <script type="text/babel">
         const { useState, useEffect, useMemo, createContext, useContext } = React;
-        const { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } = Recharts;
+
+        // Проверка загрузки Recharts
+        let BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid;
+        if (typeof Recharts !== 'undefined') {
+            ({ BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } = Recharts);
+        } else {
+            console.error('Recharts не загружен');
+        }
 
         // --- ЛОКАЛЬНОЕ ХРАНИЛИЩЕ ДАННЫХ ---
         const STORAGE_KEY = 'pams_data';
@@ -380,7 +387,7 @@
                         />
                     </div>
 
-                    {/* Charts */}
+                    {/* Charts - временно отключены */}
                     <div className="grid grid-cols-1 gap-6">
                         <div className="bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-lg shadow-lg shadow-blue-500/10">
                             <div className="flex justify-between items-center mb-4">
@@ -389,30 +396,8 @@
                                 </h3>
                                 <TimeRangeSelector selectedRange={timeRange} onChange={setTimeRange} />
                             </div>
-                            <div style={{ width: '100%', height: 300 }}>
-                                <ResponsiveContainer>
-                                    <BarChart data={netProfitData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }} onClick={handleBarClick}>
-                                        <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
-                                        <XAxis
-                                            dataKey="name"
-                                            stroke={axisColor}
-                                            fontSize={12}
-                                            tickFormatter={(value) => value.substring(2)}
-                                        />
-                                        <YAxis
-                                            stroke={axisColor}
-                                            fontSize={12}
-                                            tickFormatter={(value) => new Intl.NumberFormat('ru-RU').format(value)}
-                                        />
-                                        <Tooltip content={<CustomTooltip />} cursor={{ fill: tooltipCursor }} />
-                                        <Bar
-                                            dataKey="Чистая Прибыль"
-                                            fill="#0ea5e9"
-                                            radius={[4, 4, 0, 0]}
-                                            cursor="pointer"
-                                        />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                            <div className="flex items-center justify-center h-64 bg-gray-200 dark:bg-gray-700 rounded-lg">
+                                <p className="text-gray-600 dark:text-gray-400">Графики временно отключены</p>
                             </div>
                         </div>
                     </div>
@@ -870,13 +855,29 @@
             );
         }
 
-        // Render app
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(
-            <ThemeProvider>
-                <App />
-            </ThemeProvider>
-        );
+        // Render app с проверкой ошибок
+        try {
+            console.log('Начало рендеринга приложения...');
+            const root = ReactDOM.createRoot(document.getElementById('root'));
+            root.render(
+                <ThemeProvider>
+                    <App />
+                </ThemeProvider>
+            );
+            console.log('Приложение успешно отрендерено');
+        } catch (error) {
+            console.error('Ошибка при рендеринге приложения:', error);
+            document.getElementById('root').innerHTML = `
+                <div style="padding: 20px; color: red; font-family: monospace;">
+                    <h2>Ошибка загрузки приложения</h2>
+                    <p>${error.message}</p>
+                    <details>
+                        <summary>Детали ошибки</summary>
+                        <pre>${error.stack}</pre>
+                    </details>
+                </div>
+            `;
+        }
     </script>
 </body>
 </html>
